@@ -1,0 +1,121 @@
+{
+  "name": "@zubricks/payload-plugin-image-optimization",
+  "version": "1.0.0",
+  "description": "Dependency-light image compression and optimization for Payload CMS",
+  "keywords": [
+    "payload",
+    "payloadcms",
+    "payload-plugin",
+    "image",
+    "compression",
+    "optimization",
+    "sharp",
+    "webp",
+    "avif"
+  ],
+  "license": "MIT",
+  "author": "Sean Zubrickas <zubricks@gmail.com>",
+  "sideEffects": [
+    "*.css",
+    "*.scss"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./client": {
+      "import": "./src/exports/client.ts",
+      "types": "./src/exports/client.ts",
+      "default": "./src/exports/client.ts"
+    },
+    "./types": {
+      "import": "./src/exports/types.ts",
+      "types": "./src/exports/types.ts",
+      "default": "./src/exports/types.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm copyfiles && pnpm build:types && pnpm build:swc",
+    "build:swc": "swc ./src -d ./dist --config-file .swcrc --strip-leading-paths",
+    "build:types": "tsc --project tsconfig.build.json",
+    "clean": "rimraf {dist,*.tsbuildinfo}",
+    "copyfiles": "copyfiles -u 1 \"src/**/*.{html,css,scss,ttf,woff,woff2,eot,svg,jpg,png,json}\" dist/",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
+    "prepack": "pnpm clean && pnpm build && pnpm test:int",
+    "test": "pnpm test:int",
+    "test:int": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@payloadcms/eslint-config": "3.28.0",
+    "@payloadcms/storage-s3": "3.88.0",
+    "@payloadcms/storage-vercel-blob": "3.88.0",
+    "@payloadcms/ui": "3.88.0",
+    "@swc/cli": "0.6.0",
+    "@types/node": "22.19.9",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "copyfiles": "2.4.1",
+    "eslint": "^9.23.0",
+    "graphql": "^16.8.1",
+    "payload": "3.88.0",
+    "prettier": "^3.4.2",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "rimraf": "3.0.2",
+    "sharp": "0.34.2",
+    "typescript": "5.7.3",
+    "vite-tsconfig-paths": "6.0.5",
+    "vitest": "4.0.18"
+  },
+  "peerDependencies": {
+    "@payloadcms/ui": "^3.88.0",
+    "payload": "^3.88.0",
+    "react": "^19.0.1 || ^19.1.2 || ^19.2.1",
+    "react-dom": "^19.0.1 || ^19.1.2 || ^19.2.1",
+    "sharp": "^0.34.2"
+  },
+  "engines": {
+    "node": ">=20.9.0",
+    "pnpm": "^9 || ^10 || ^11"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./client": {
+        "import": "./dist/exports/client.js",
+        "types": "./dist/exports/client.d.ts",
+        "default": "./dist/exports/client.js"
+      },
+      "./types": {
+        "import": "./dist/exports/types.js",
+        "types": "./dist/exports/types.d.ts",
+        "default": "./dist/exports/types.js"
+      }
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "unrs-resolver"
+    ]
+  },
+  "registry": "https://registry.npmjs.org/"
+}
