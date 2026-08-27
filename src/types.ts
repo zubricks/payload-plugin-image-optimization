@@ -26,7 +26,7 @@ export type ExistingMediaFile = {
 export type ExistingMediaOptions = {
   /** Maximum documents handled by one admin request. Defaults to 5 and is capped at 25. */
   batchSize?: number
-  /** Retrieve existing bytes from private or custom storage. Public URLs work without an override. */
+  /** Override retrieval from Payload storage handlers or the document URL. */
   readFile?: (args: ExistingMediaReadFileArgs) => Promise<ExistingMediaFile>
 }
 

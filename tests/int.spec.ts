@@ -403,6 +403,78 @@ describe('imageCompressionPlugin', () => {
     vi.unstubAllGlobals()
   })
 
+  it('reads through the configured storage handler before falling back to the document URL', async () => {
+    const source = await makeStillImage(40, 40)
+    const signedURL = 'https://storage.example.com/signed-cloud.jpg'
+    const storageHandler = vi.fn().mockResolvedValue(Response.redirect(signedURL, 302))
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(source, {
+        headers: { 'content-type': 'image/jpeg' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const config = applyPlugin()
+    const endpoint = config.endpoints?.find(
+      (candidate) => candidate.path === '/image-optimization/existing',
+    )
+    const document = {
+      filename: 'cloud.jpg',
+      filesize: source.length,
+      id: 'cloud-id',
+      mimeType: 'image/jpeg',
+      prefix: 'originals',
+      url: '/api/media/file/cloud.jpg',
+    }
+    const req = {
+      context: {},
+      headers: new Headers({ cookie: 'payload-token=secret' }),
+      json: vi.fn().mockResolvedValue({ collection: 'media', id: document.id }),
+      payload: {
+        collections: {
+          media: {
+            config: {
+              upload: { handlers: [storageHandler] },
+            },
+          },
+        },
+        config: { serverURL: '' },
+        findByID: vi.fn().mockResolvedValue(document),
+        update: vi.fn().mockResolvedValue({
+          ...document,
+          imageCompression: { status: 'complete' },
+        }),
+      },
+      url: 'http://localhost:3000/api/image-optimization/existing',
+      user: { id: 'admin-id' },
+    }
+
+    if (!endpoint) {
+      throw new Error('Expected existing-media endpoint')
+    }
+    const response = await endpoint.handler(req as never)
+    const body = (await response.json()) as { result: { status: string } }
+
+    expect(body.result.status).toBe('complete')
+    expect(storageHandler).toHaveBeenCalledWith(
+      req,
+      expect.objectContaining({
+        doc: document,
+        params: {
+          collection: 'media',
+          filename: 'cloud.jpg',
+          prefix: 'originals',
+        },
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledWith(
+      signedURL,
+      expect.objectContaining({ redirect: 'follow' }),
+    )
+    vi.unstubAllGlobals()
+  })
+
   it('rejects unauthenticated existing-media requests and reports reader failures', async () => {
     const config = applyPlugin(uploadCollection(), {
       existingMedia: {

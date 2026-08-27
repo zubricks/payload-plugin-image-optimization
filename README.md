@@ -170,7 +170,10 @@ recorded as pending rather than being encoded inline.
 
 ### Private and custom storage
 
-By default, the plugin reads the document's `url`. Cookies and authorization headers are forwarded
+By default, the plugin first asks the upload collection's configured storage handlers for the file.
+This avoids a serverless function making a request back through its own public media route and works
+with storage adapters that return either file bytes or a signed redirect. If no storage handler
+responds, the plugin reads the document's `url`. Cookies and authorization headers are forwarded
 only for same-origin URLs; credentials are never sent to a cross-origin CDN. Public S3, Vercel Blob,
 and other public object URLs work without additional configuration.
 

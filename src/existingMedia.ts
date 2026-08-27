@@ -33,6 +33,30 @@ type ExistingMediaResult = {
 }
 
 type ExistingMediaPayloadAPI = {
+  collections?: Record<
+    string,
+    {
+      config?: {
+        upload?:
+          | boolean
+          | {
+              handlers?: Array<
+                (
+                  req: PayloadRequest,
+                  args: {
+                    doc: ExistingMediaDocument
+                    params: {
+                      collection: string
+                      filename: string
+                      prefix?: string
+                    }
+                  },
+                ) => Promise<Response | void> | Response | void
+              >
+            }
+      }
+    }
+  >
   count: (args: Record<string, unknown>) => Promise<{ totalDocs: number }>
   find: (args: Record<string, unknown>) => Promise<{
     docs: ExistingMediaDocument[]
@@ -40,6 +64,75 @@ type ExistingMediaPayloadAPI = {
   }>
   findByID: (args: Record<string, unknown>) => Promise<ExistingMediaDocument>
   update: (args: Record<string, unknown>) => Promise<ExistingMediaDocument>
+}
+
+const readResponse = async ({
+  maxFileSize,
+  response,
+}: {
+  maxFileSize: number
+  response: Response
+}): Promise<Buffer> => {
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get('location')
+
+    if (!location) {
+      throw new Error('Existing-media storage handler returned a redirect without a location')
+    }
+
+    response = await fetch(location, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(30_000),
+    })
+  }
+
+  if (!response.ok) {
+    throw new Error(`Unable to read existing media (${response.status} ${response.statusText})`)
+  }
+
+  const contentLength = Number(response.headers.get('content-length'))
+
+  if (Number.isFinite(contentLength) && contentLength > maxFileSize) {
+    throw new Error('Existing media exceeds the configured maximum file size')
+  }
+
+  const data = Buffer.from(await response.arrayBuffer())
+
+  if (data.length > maxFileSize) {
+    throw new Error('Existing media exceeds the configured maximum file size')
+  }
+
+  return data
+}
+
+const readFromStorageHandler = async ({
+  collection,
+  document,
+  maxFileSize,
+  req,
+}: ExistingMediaReadFileArgs): Promise<Buffer | undefined> => {
+  const payload = req.payload as unknown as ExistingMediaPayloadAPI
+  const upload = payload.collections?.[collection]?.config?.upload
+  const handlers = upload && typeof upload === 'object' ? upload.handlers : undefined
+
+  if (!handlers?.length || !document.filename) {
+    return
+  }
+
+  for (const handler of handlers) {
+    const response = await handler(req, {
+      doc: document,
+      params: {
+        collection,
+        filename: document.filename,
+        ...(typeof document.prefix === 'string' ? { prefix: document.prefix } : {}),
+      },
+    })
+
+    if (response) {
+      return readResponse({ maxFileSize, response })
+    }
+  }
 }
 
 const isDocumentID = (value: unknown): value is number | string =>
@@ -82,9 +175,26 @@ const getMetrics = (
   }
 }
 
-const defaultReadFile = async ({ document, maxFileSize, req }: ExistingMediaReadFileArgs) => {
-  if (!document.filename || !document.mimeType || !document.url) {
-    throw new Error('The media document is missing filename, mimeType, or url')
+const defaultReadFile = async (args: ExistingMediaReadFileArgs) => {
+  const { document, maxFileSize, req } = args
+
+  if (!document.filename || !document.mimeType) {
+    throw new Error('The media document is missing filename or mimeType')
+  }
+
+  const storageData = await readFromStorageHandler(args)
+
+  if (storageData) {
+    return {
+      data: storageData,
+      mimetype: document.mimeType,
+      name: document.filename,
+      size: storageData.length,
+    } satisfies ExistingMediaFile
+  }
+
+  if (!document.url) {
+    throw new Error('The media document is missing a url and no storage handler returned the file')
   }
 
   const baseURL = req.payload.config.serverURL || req.url
@@ -118,17 +228,7 @@ const defaultReadFile = async ({ document, maxFileSize, req }: ExistingMediaRead
     signal: AbortSignal.timeout(30_000),
   })
 
-  if (!response.ok) {
-    throw new Error(`Unable to read existing media (${response.status} ${response.statusText})`)
-  }
-
-  const contentLength = Number(response.headers.get('content-length'))
-
-  if (Number.isFinite(contentLength) && contentLength > maxFileSize) {
-    throw new Error('Existing media exceeds the configured maximum file size')
-  }
-
-  const data = Buffer.from(await response.arrayBuffer())
+  const data = await readResponse({ maxFileSize, response })
 
   return {
     data,
