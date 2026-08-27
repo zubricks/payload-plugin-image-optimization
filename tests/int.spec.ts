@@ -101,7 +101,7 @@ describe('imageCompressionPlugin', () => {
         components: {
           Field: {
             clientProps: { metricsPath: 'imageCompression' },
-            path: 'payload-plugin-image-optimization/client#CompressionSummary',
+            path: '@zubricks/payload-plugin-image-optimization/client#CompressionSummary',
           },
         },
       },

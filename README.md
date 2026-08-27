@@ -7,7 +7,7 @@ file persistence to Payload and its storage adapters.
 ## Installation
 
 ```sh
-pnpm add payload-plugin-image-optimization sharp
+pnpm add @zubricks/payload-plugin-image-optimization
 ```
 
 Payload, React, `@payloadcms/ui`, and Sharp are peer dependencies. This package targets Payload
@@ -33,7 +33,7 @@ Payload, React, `@payloadcms/ui`, and Sharp are peer dependencies. This package 
 ## Inline usage
 
 ```ts
-import { imageCompressionPlugin } from 'payload-plugin-image-optimization'
+import { imageCompressionPlugin } from '@zubricks/payload-plugin-image-optimization'
 
 imageCompressionPlugin({
   collections: ['media'],
@@ -115,7 +115,7 @@ Workers can reuse the same codec behavior without depending on plugin internals:
 
 ```ts
 import sharp from 'sharp'
-import { createImageCompressionProcessor } from 'payload-plugin-image-optimization'
+import { createImageCompressionProcessor } from '@zubricks/payload-plugin-image-optimization'
 
 const processImage = createImageCompressionProcessor(
   {
@@ -183,35 +183,3 @@ CI covers Node 20 and 22 on Linux x64. Linux arm64 should be added before claimi
 - `onError` controls stored-original processing. Errors raised later by Payload while generating a
   configured derivative `imageSize` still follow Payload's normal upload failure behavior.
 - Exact cloud-provider behavior still needs credentialed deployment smoke tests.
-
-## Development
-
-```sh
-pnpm install
-```
-
-The standalone Vitest suite covers image processing, plugin composition, background jobs, animated
-and multi-page images, and Vercel Blob/S3 client-upload configuration. Use a consuming Payload app
-for manual admin and end-to-end upload testing.
-
-Useful commands:
-
-```sh
-pnpm lint
-pnpm test:int
-pnpm build
-npm pack --dry-run
-```
-
-## Publishing
-
-The package starts at `0.1.0`. Before publishing, update the version according to SemVer, review the
-contents reported by `npm pack --dry-run`, then publish to npm:
-
-```sh
-npm login
-npm publish --access public
-```
-
-The package name `payload-plugin-image-optimization` was available when this project was scaffolded,
-but npm ownership is not reserved until the first successful publish.

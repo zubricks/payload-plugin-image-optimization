@@ -73,7 +73,7 @@ export const compressionMetadataFields = (name: string): Field[] => [
           clientProps: {
             metricsPath: name,
           },
-          path: 'payload-plugin-image-optimization/client#CompressionSummary',
+          path: '@zubricks/payload-plugin-image-optimization/client#CompressionSummary',
         },
       },
     },
