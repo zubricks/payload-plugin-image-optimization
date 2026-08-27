@@ -1,6 +1,7 @@
 import type { CollectionConfig, Config, ImageSize, Plugin, UploadConfig } from 'payload'
 
 import { sanitizeImageCompressionOptions } from './defaults.js'
+import { createExistingMediaEndpoint } from './existingMedia.js'
 import { compressionMetadataFields } from './fields/compressionMetadata.js'
 import { captureOriginalFile } from './hooks/captureOriginalFile.js'
 import { enqueueBackgroundCompression } from './hooks/enqueueBackgroundCompression.js'
@@ -101,7 +102,9 @@ const configureCollection = (
       defaultValue: false,
       label: 'Skip image optimization',
     },
-    ...(options.metadata ? compressionMetadataFields(options.metadataFieldName) : []),
+    ...(options.metadata
+      ? compressionMetadataFields(options.metadataFieldName, Boolean(options.existingMedia))
+      : []),
   ]
 
   if (options.disabled) {
@@ -180,6 +183,12 @@ export const imageCompressionPlugin = (pluginOptions: ImageCompressionOptions): 
     return {
       ...config,
       collections,
+      endpoints: [
+        ...(config.endpoints ?? []),
+        ...(!options.disabled && options.existingMedia
+          ? [createExistingMediaEndpoint(options)]
+          : []),
+      ],
       globals: [...(config.globals ?? []), imageCompressionSettingsGlobal(options)],
     }
   }

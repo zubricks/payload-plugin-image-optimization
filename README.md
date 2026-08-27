@@ -2,7 +2,7 @@
 
 # Image Optimization for Payload
 
-Dependency-light image optimization for Payload. The plugin uses the Payload's existing `sharp`
+Dependency-light image optimization for Payload. The plugin uses Payload's existing `sharp`
 dependency, owns the stored-original encode so it can make reliable fallback decisions, and leaves
 file persistence to Payload and its storage adapters.
 
@@ -58,6 +58,7 @@ pnpm dev
 - Strips metadata by default
 - Records status and size metrics in a read-only admin summary
 - Adds authenticated admin settings for stored-original optimization
+- Scans and optimizes media uploaded before the plugin was installed
 - Supports a per-upload `Skip image optimization` override
 - Leaves SVG, PDF, video, and document uploads untouched
 
@@ -68,6 +69,9 @@ import { imageCompressionPlugin } from '@zubricks/payload-plugin-image-optimizat
 
 imageCompressionPlugin({
   collections: ['media'],
+  existingMedia: {
+    batchSize: 5,
+  },
   format: 'webp',
   formatOptions: {
     effort: 4,
@@ -86,7 +90,8 @@ imageCompressionPlugin({
 
 Defaults are WebP quality 82, effort 4, maximum dimensions of 2560 by 2560 pixels, a 100 megapixel
 decoded-input limit, no minimum byte threshold, no plugin-level maximum byte threshold, metadata
-stripping, `skipIfLarger: true`, and `onError: 'keep-original'`.
+stripping, `skipIfLarger: true`, `onError: 'keep-original'`, and existing-media admin actions in
+batches of five.
 
 `minFileSize` and `maxFileSize` define the range the plugin will attempt to compress. Files outside
 that range are stored unchanged with a `skipped` status. Payload's root `upload.limits.fileSize`
@@ -109,6 +114,7 @@ control stored-original processing without a redeploy:
 - Lower the maximum image dimension within the developer-configured ceiling
 - Raise the minimum file size within the developer-configured limits
 - Preserve or strip metadata
+- Scan and optimize existing, unprocessed media
 
 Each configured upload collection also receives a sidebar **Skip image optimization** checkbox.
 This keeps that document's uploaded original unchanged while Payload continues to generate its
@@ -124,6 +130,74 @@ are copied into the serialized task so queued work is deterministic even if the 
 before a worker runs. Payload image-size encoder options are startup configuration, so the admin
 preset and metadata toggle apply to the stored original; generated sizes continue to use the
 code-configured encoder settings.
+
+## Existing media
+
+The **Existing media** panel in the Image Optimization Global provides a two-step bulk workflow:
+
+1. **Scan existing media** counts eligible images without changing them.
+2. **Optimize images** processes bounded batches until the scan is complete.
+
+An **Optimize existing image** action also appears on individual media documents that do not have
+compression metrics yet. Both actions require an authenticated Payload user and execute collection
+read and update access control. Existing documents with compression metrics are excluded by default
+to prevent repeated lossy encoding. The per-document API supports an explicit `force` request for
+application-specific tooling, but the bundled admin UI does not force reprocessing.
+
+Each existing file is submitted through `payload.update` as a normal replacement upload. That means
+the plugin's current settings, Sharp limits, error behavior, generated `imageSize` derivatives,
+storage adapters, hooks, and metrics remain authoritative. A format conversion can change the media
+filename and URL; Payload relationships continue to reference the same document ID, but consumers
+that persisted a raw URL may need updating.
+
+Set `existingMedia: false` to remove the endpoint and admin controls, or configure the maximum work
+performed by one request:
+
+```ts
+imageCompressionPlugin({
+  collections: ['media'],
+  existingMedia: {
+    batchSize: 5, // 1–25; smaller batches are safer on serverless platforms
+  },
+})
+```
+
+Existing-media processing requires `metadata` because the stored status is the idempotency marker.
+The bulk action is unavailable while optimization is disabled in the Image Optimization Global.
+When `background` is configured, replacement uploads enter that same background interface and are
+recorded as pending rather than being encoded inline.
+
+### Private and custom storage
+
+By default, the plugin reads the document's `url`. Cookies and authorization headers are forwarded
+only for same-origin URLs; credentials are never sent to a cross-origin CDN. Public S3, Vercel Blob,
+and other public object URLs work without additional configuration.
+
+Provide `readFile` when originals require an SDK, signed request, private bucket credentials, or
+custom retrieval logic. The callback runs on the server and keeps provider SDKs out of this package:
+
+```ts
+imageCompressionPlugin({
+  collections: ['media'],
+  existingMedia: {
+    batchSize: 5,
+    readFile: async ({ document, maxFileSize }) => {
+      const data = await privateStorage.download(document.filename!)
+
+      if (data.length > maxFileSize) {
+        throw new Error('Stored image exceeds the configured maximum')
+      }
+
+      return {
+        data,
+        mimetype: document.mimeType!,
+        name: document.filename!,
+        size: data.length,
+      }
+    },
+  },
+})
+```
 
 ## Background-processing interface
 
@@ -187,6 +261,10 @@ uploads for larger inputs. Payload 3.88 rehydrates supported client uploads into
 inline processing to run, but the decoded image must still fit within the function's memory and
 duration limits. Background mode is recommended for large or CPU-expensive images.
 
+Existing-media batches use short authenticated requests instead of a long-running in-process loop.
+The admin client sends the next batch only after the previous batch completes, making the workflow
+compatible with serverless execution limits and resumable after a browser or function interruption.
+
 ## Node-runtime compatibility matrix
 
 | Runtime                                 | Support            | Notes                                                             |
@@ -207,8 +285,8 @@ CI covers Node 20 and 22 on Linux x64. Linux arm64 should be added before claimi
 ## Remaining limits
 
 - Conversion uses one output format per configured collection.
-- Existing files are unchanged until re-uploaded or processed by a host-provided background worker.
-- A built-in bulk-recompression command is not included yet.
+- Existing-media reads require an accessible URL or a host-provided `readFile` implementation.
+- Force-reprocessing existing compressed images is API-only to reduce accidental generation loss.
 - Background mode defines queue and processor boundaries but does not assume a specific queue or
   storage provider.
 - `onError` controls stored-original processing. Errors raised later by Payload while generating a

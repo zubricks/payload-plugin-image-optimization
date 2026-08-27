@@ -38,6 +38,19 @@ export const sanitizeImageCompressionOptions = (
   const maxInputPixels = options.maxInputPixels ?? 100_000_000
   const maxWidth = options.maxWidth ?? 2560
   const minFileSize = options.minFileSize ?? 0
+  const existingMediaConfig =
+    options.existingMedia === false
+      ? false
+      : typeof options.existingMedia === 'object'
+        ? options.existingMedia
+        : {}
+  const existingMedia =
+    existingMediaConfig === false
+      ? false
+      : {
+          ...existingMediaConfig,
+          batchSize: existingMediaConfig.batchSize ?? 5,
+        }
 
   if (maxHeight < 1 || maxWidth < 1 || maxFileSize < 1 || maxInputPixels < 1 || minFileSize < 0) {
     throw new Error('imageCompressionPlugin size and pixel limits must be positive numbers')
@@ -47,10 +60,26 @@ export const sanitizeImageCompressionOptions = (
     throw new Error('imageCompressionPlugin minFileSize cannot exceed maxFileSize')
   }
 
+  if (
+    existingMedia &&
+    (!Number.isInteger(existingMedia.batchSize) ||
+      existingMedia.batchSize < 1 ||
+      existingMedia.batchSize > 25)
+  ) {
+    throw new Error('imageCompressionPlugin existingMedia.batchSize must be between 1 and 25')
+  }
+
+  if (existingMedia && options.metadata === false) {
+    throw new Error(
+      'imageCompressionPlugin existingMedia requires metadata to prevent reprocessing',
+    )
+  }
+
   return {
     background: options.background,
     collections: options.collections,
     disabled: options.disabled ?? false,
+    existingMedia,
     format,
     formatOptions: options.formatOptions ?? formatDefaults[format],
     metadata: options.metadata ?? true,

@@ -2,7 +2,7 @@ import type { Field } from 'payload'
 
 import { compressionContextKey } from '../hooks/captureOriginalFile.js'
 
-export const compressionMetadataFields = (name: string): Field[] => [
+export const compressionMetadataFields = (name: string, existingMediaEnabled = false): Field[] => [
   {
     name,
     type: 'group',
@@ -71,6 +71,7 @@ export const compressionMetadataFields = (name: string): Field[] => [
       components: {
         Field: {
           clientProps: {
+            existingMediaEnabled,
             metricsPath: name,
           },
           path: '@zubricks/payload-plugin-image-optimization/client#CompressionSummary',

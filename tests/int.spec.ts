@@ -100,7 +100,7 @@ describe('imageCompressionPlugin', () => {
       admin: {
         components: {
           Field: {
-            clientProps: { metricsPath: 'imageCompression' },
+            clientProps: { existingMediaEnabled: true, metricsPath: 'imageCompression' },
             path: '@zubricks/payload-plugin-image-optimization/client#CompressionSummary',
           },
         },
@@ -119,6 +119,361 @@ describe('imageCompressionPlugin', () => {
         slug: 'image-compression-settings',
       }),
     )
+    expect(config.endpoints).toContainEqual(
+      expect.objectContaining({
+        method: 'post',
+        path: '/image-optimization/existing',
+      }),
+    )
+    expect(config.globals?.[0]?.fields).toContainEqual(
+      expect.objectContaining({
+        name: 'existingMediaOptimizer',
+        type: 'ui',
+      }),
+    )
+  })
+
+  it('optimizes an existing document through Payload update and records metrics', async () => {
+    const source = await makeStillImage()
+    const readFile = vi.fn().mockResolvedValue({
+      data: source,
+      mimetype: 'image/jpeg',
+      name: 'legacy.jpg',
+      size: source.length,
+    })
+    const config = applyPlugin(uploadCollection(), { existingMedia: { readFile } })
+    const media = config.collections?.[0]
+    const endpoint = config.endpoints?.find(
+      (candidate) => candidate.path === '/image-optimization/existing',
+    )
+    const document = {
+      filename: 'legacy.jpg',
+      filesize: source.length,
+      id: 'legacy-id',
+      mimeType: 'image/jpeg',
+      url: 'https://cdn.example.com/legacy.jpg',
+    }
+    const req = {
+      context: {},
+      data: {},
+      headers: new Headers(),
+      json: vi.fn().mockResolvedValue({ collection: 'media', id: document.id }),
+      payload: {
+        config: { serverURL: 'https://cms.example.com' },
+        findByID: vi.fn().mockResolvedValue(document),
+        findGlobal: vi.fn().mockResolvedValue({ enabled: true }),
+        update: vi.fn(),
+      },
+      url: 'https://cms.example.com/api/image-optimization/existing',
+      user: { id: 'admin-id' },
+    }
+
+    req.payload.update.mockImplementation(
+      async ({
+        file,
+      }: {
+        file: { data: Buffer; mimetype: string; name: string; size: number }
+      }) => {
+        const hookReq = { ...req, context: {}, data: {}, file }
+        await media?.hooks?.beforeOperation?.[0]?.({ operation: 'update', req: hookReq } as never)
+        const data = await media?.hooks?.beforeChange?.at(-1)?.({
+          data: { filesize: hookReq.file.size, mimeType: hookReq.file.mimetype },
+          operation: 'update',
+          req: hookReq,
+        } as never)
+
+        return { ...document, ...data }
+      },
+    )
+
+    if (!endpoint) {
+      throw new Error('Expected existing-media endpoint')
+    }
+    const response = await endpoint.handler(req as never)
+    const body = (await response.json()) as {
+      result: { optimizedSize: number; savedBytes: number; status: string }
+    }
+
+    expect(response.status).toBe(200)
+    expect(readFile).toHaveBeenCalledWith({
+      collection: 'media',
+      document,
+      maxFileSize: Number.MAX_SAFE_INTEGER,
+      req,
+    })
+    expect(req.payload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'media',
+        id: 'legacy-id',
+        overwriteExistingFiles: true,
+        overrideAccess: false,
+        req,
+      }),
+    )
+    expect(body.result.status).toBe('complete')
+    expect(body.result.optimizedSize).toBeLessThan(source.length)
+    expect(body.result.savedBytes).toBeGreaterThan(0)
+  })
+
+  it('previews and batches only unprocessed existing media', async () => {
+    const source = await makeStillImage(80, 80)
+    const documents = ['one', 'two'].map((id) => ({
+      filename: `${id}.jpg`,
+      filesize: source.length,
+      id,
+      mimeType: 'image/jpeg',
+      url: `https://cdn.example.com/${id}.jpg`,
+    }))
+    const config = applyPlugin(uploadCollection(), {
+      existingMedia: {
+        batchSize: 2,
+        readFile: ({ document }) =>
+          Promise.resolve({
+            data: source,
+            mimetype: 'image/jpeg',
+            name: document.filename!,
+            size: source.length,
+          }),
+      },
+    })
+    const endpoint = config.endpoints?.find(
+      (candidate) => candidate.path === '/image-optimization/existing',
+    )
+    const payload = {
+      config: { serverURL: 'https://cms.example.com' },
+      count: vi.fn().mockResolvedValue({ totalDocs: 2 }),
+      find: vi.fn().mockResolvedValue({ docs: documents, totalDocs: 2 }),
+      findGlobal: vi.fn().mockResolvedValue({ enabled: true }),
+      update: vi.fn().mockImplementation(({ file, id }) => ({
+        id,
+        imageCompression: {
+          optimizedSize: file.size,
+          originalSize: file.size + 100,
+          savedBytes: 100,
+          status: 'complete',
+        },
+      })),
+    }
+    const makeReq = (body: Record<string, unknown>) => ({
+      context: {},
+      headers: new Headers(),
+      json: vi.fn().mockResolvedValue(body),
+      payload,
+      url: 'https://cms.example.com/api/image-optimization/existing',
+      user: { id: 'admin-id' },
+    })
+
+    if (!endpoint) {
+      throw new Error('Expected existing-media endpoint')
+    }
+    const previewResponse = await endpoint.handler(
+      makeReq({ collection: 'media', dryRun: true }) as never,
+    )
+    const preview = (await previewResponse.json()) as { eligible: number }
+    const batchResponse = await endpoint.handler(makeReq({ collection: 'media' }) as never)
+    const batch = (await batchResponse.json()) as {
+      failed: number
+      processed: number
+      remaining: number
+      savedBytes: number
+    }
+
+    expect(preview.eligible).toBe(2)
+    expect(payload.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'media',
+        overrideAccess: false,
+        where: expect.objectContaining({ and: expect.any(Array) }),
+      }),
+    )
+    expect(payload.find).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 2, page: 1, sort: 'id' }),
+    )
+    expect(batch).toMatchObject({ failed: 0, processed: 2, remaining: 0, savedBytes: 200 })
+    expect(payload.update).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not re-optimize processed media unless an individual request forces it', async () => {
+    const source = await makeStillImage(40, 40)
+    const readFile = vi.fn().mockResolvedValue({
+      data: source,
+      mimetype: 'image/jpeg',
+      name: 'processed.jpg',
+      size: source.length,
+    })
+    const config = applyPlugin(uploadCollection(), { existingMedia: { readFile } })
+    const endpoint = config.endpoints?.find(
+      (candidate) => candidate.path === '/image-optimization/existing',
+    )
+    const document = {
+      filename: 'processed.jpg',
+      filesize: source.length,
+      id: 'processed-id',
+      imageCompression: { status: 'complete' },
+      mimeType: 'image/jpeg',
+      url: 'https://cdn.example.com/processed.jpg',
+    }
+    const payload = {
+      config: { serverURL: 'https://cms.example.com' },
+      findByID: vi.fn().mockResolvedValue(document),
+      update: vi.fn().mockResolvedValue({
+        ...document,
+        imageCompression: { status: 'kept-original' },
+      }),
+    }
+    const makeReq = (force = false) => ({
+      context: {},
+      headers: new Headers(),
+      json: vi.fn().mockResolvedValue({
+        collection: 'media',
+        force,
+        id: document.id,
+      }),
+      payload,
+      url: 'https://cms.example.com/api/image-optimization/existing',
+      user: { id: 'admin-id' },
+    })
+
+    if (!endpoint) {
+      throw new Error('Expected existing-media endpoint')
+    }
+    const skippedResponse = await endpoint.handler(makeReq() as never)
+    const skipped = (await skippedResponse.json()) as { result: { status: string } }
+    expect(skipped.result.status).toBe('already-processed')
+    expect(readFile).not.toHaveBeenCalled()
+
+    const forcedResponse = await endpoint.handler(makeReq(true) as never)
+    const forced = (await forcedResponse.json()) as { result: { status: string } }
+    expect(forced.result.status).toBe('kept-original')
+    expect(readFile).toHaveBeenCalledOnce()
+    expect(payload.update).toHaveBeenCalledOnce()
+  })
+
+  it('reads public cloud URLs by default and forwards admin authentication', async () => {
+    const source = await makeStillImage(40, 40)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(source, {
+        headers: { 'content-type': 'image/jpeg' },
+        status: 200,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const config = applyPlugin()
+    const endpoint = config.endpoints?.find(
+      (candidate) => candidate.path === '/image-optimization/existing',
+    )
+    const document = {
+      filename: 'cloud.jpg',
+      filesize: source.length,
+      id: 'cloud-id',
+      mimeType: 'image/jpeg',
+      url: 'https://blob.example.com/cloud.jpg',
+    }
+    const req = {
+      context: {},
+      headers: new Headers({ authorization: 'Bearer token', cookie: 'payload-token=secret' }),
+      json: vi.fn().mockResolvedValue({ collection: 'media', id: document.id }),
+      payload: {
+        config: { serverURL: 'https://cms.example.com' },
+        findByID: vi.fn().mockResolvedValue(document),
+        update: vi.fn().mockResolvedValue({
+          ...document,
+          imageCompression: { status: 'complete' },
+        }),
+      },
+      url: 'https://cms.example.com/api/image-optimization/existing',
+      user: { id: 'admin-id' },
+    }
+
+    if (!endpoint) {
+      throw new Error('Expected existing-media endpoint')
+    }
+    await endpoint.handler(req as never)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL(document.url),
+      expect.objectContaining({
+        headers: expect.objectContaining({}),
+        redirect: 'follow',
+      }),
+    )
+    const requestHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers
+    expect(requestHeaders.get('authorization')).toBeNull()
+    expect(requestHeaders.get('cookie')).toBeNull()
+    vi.unstubAllGlobals()
+  })
+
+  it('rejects unauthenticated existing-media requests and reports reader failures', async () => {
+    const config = applyPlugin(uploadCollection(), {
+      existingMedia: {
+        readFile: () => Promise.reject(new Error('Private object is unavailable')),
+      },
+    })
+    const endpoint = config.endpoints?.find(
+      (candidate) => candidate.path === '/image-optimization/existing',
+    )
+    const payload = {
+      config: { serverURL: 'https://cms.example.com' },
+      findByID: vi.fn().mockResolvedValue({
+        filename: 'private.jpg',
+        filesize: 1024,
+        id: 'private-id',
+        mimeType: 'image/jpeg',
+        url: 'https://private.example.com/private.jpg',
+      }),
+      update: vi.fn(),
+    }
+    const makeReq = (authenticated: boolean) => ({
+      context: {},
+      headers: new Headers(),
+      json: vi.fn().mockResolvedValue({ collection: 'media', id: 'private-id' }),
+      payload,
+      url: 'https://cms.example.com/api/image-optimization/existing',
+      user: authenticated ? { id: 'admin-id' } : null,
+    })
+
+    if (!endpoint) {
+      throw new Error('Expected existing-media endpoint')
+    }
+    const unauthorized = await endpoint.handler(makeReq(false) as never)
+    expect(unauthorized.status).toBe(401)
+    expect(payload.findByID).not.toHaveBeenCalled()
+
+    const failedResponse = await endpoint.handler(makeReq(true) as never)
+    const failed = (await failedResponse.json()) as {
+      result: { error: string; status: string }
+    }
+    expect(failed.result).toMatchObject({
+      error: 'Private object is unavailable',
+      status: 'failed',
+    })
+    expect(payload.update).not.toHaveBeenCalled()
+  })
+
+  it('respects the admin enabled setting for existing-media actions', async () => {
+    const config = applyPlugin()
+    const endpoint = config.endpoints?.find(
+      (candidate) => candidate.path === '/image-optimization/existing',
+    )
+    const req = {
+      context: {},
+      headers: new Headers(),
+      json: vi.fn().mockResolvedValue({ collection: 'media', dryRun: true }),
+      payload: {
+        config: { serverURL: 'https://cms.example.com' },
+        count: vi.fn(),
+        findGlobal: vi.fn().mockResolvedValue({ enabled: false }),
+      },
+      url: 'https://cms.example.com/api/image-optimization/existing',
+      user: { id: 'admin-id' },
+    }
+
+    if (!endpoint) {
+      throw new Error('Expected existing-media endpoint')
+    }
+    const response = await endpoint.handler(req as never)
+    expect(response.status).toBe(409)
+    expect(req.payload.count).not.toHaveBeenCalled()
   })
 
   it('applies safe admin settings to the stored original', async () => {
@@ -514,6 +869,19 @@ describe('imageCompressionPlugin', () => {
         minFileSize: 101,
       }),
     ).toThrow('minFileSize cannot exceed maxFileSize')
+    expect(() =>
+      sanitizeImageCompressionOptions({
+        collections: ['media'],
+        existingMedia: true,
+        metadata: false,
+      }),
+    ).toThrow('existingMedia requires metadata')
+    expect(() =>
+      sanitizeImageCompressionOptions({
+        collections: ['media'],
+        existingMedia: { batchSize: 26 },
+      }),
+    ).toThrow('existingMedia.batchSize must be between 1 and 25')
     expect(() => applyPlugin(uploadCollection({ upload: undefined }))).toThrow(
       'collection "media" is not upload-enabled',
     )

@@ -1,5 +1,35 @@
 import type { CollectionSlug, ImageUploadFormatOptions, PayloadRequest } from 'payload'
 
+export type ExistingMediaDocument = Record<string, unknown> & {
+  filename?: string | null
+  filesize?: number | null
+  id: number | string
+  mimeType?: string | null
+  skipImageOptimization?: boolean | null
+  url?: string | null
+}
+
+export type ExistingMediaReadFileArgs = {
+  collection: CollectionSlug
+  document: ExistingMediaDocument
+  maxFileSize: number
+  req: PayloadRequest
+}
+
+export type ExistingMediaFile = {
+  data: Buffer
+  mimetype: string
+  name: string
+  size: number
+}
+
+export type ExistingMediaOptions = {
+  /** Maximum documents handled by one admin request. Defaults to 5 and is capped at 25. */
+  batchSize?: number
+  /** Retrieve existing bytes from private or custom storage. Public URLs work without an override. */
+  readFile?: (args: ExistingMediaReadFileArgs) => Promise<ExistingMediaFile>
+}
+
 export type ImageCompressionFormat = Extract<
   ImageUploadFormatOptions['format'],
   'avif' | 'jpeg' | 'png' | 'webp'
@@ -12,6 +42,8 @@ export type ImageCompressionOptions = {
   collections: CollectionSlug[]
   /** Keep the schema fields while disabling image processing and metrics updates. */
   disabled?: boolean
+  /** Enable admin actions for optimizing media uploaded before the plugin was installed. */
+  existingMedia?: boolean | ExistingMediaOptions
   /** Output format for optimizable raster images. */
   format?: ImageCompressionFormat
   /** Sharp encoder options passed to Payload's native image pipeline. */
@@ -94,7 +126,10 @@ export type SanitizedImageCompressionOptions = Required<
     | 'skipIfLarger'
   >
 > &
-  Pick<ImageCompressionOptions, 'background' | 'collections'>
+  Pick<ImageCompressionOptions, 'background' | 'collections'> & {
+    existingMedia:
+      false | (Required<Pick<ExistingMediaOptions, 'batchSize'>> & ExistingMediaOptions)
+  }
 
 export type CompressionStatus =
   'complete' | 'failed' | 'kept-original' | 'larger-than-source' | 'pending' | 'skipped'

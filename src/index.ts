@@ -9,6 +9,10 @@ export type {
 } from './processImage.js'
 export type {
   CompressionStatus,
+  ExistingMediaDocument,
+  ExistingMediaFile,
+  ExistingMediaOptions,
+  ExistingMediaReadFileArgs,
   ImageCompressionAdminSettings,
   ImageCompressionBackgroundAdapter,
   ImageCompressionBackgroundTask,

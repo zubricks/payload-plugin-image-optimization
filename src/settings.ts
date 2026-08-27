@@ -112,6 +112,24 @@ export const imageCompressionSettingsGlobal = (
       defaultValue: options.preserveMetadata,
       label: 'Preserve image metadata',
     },
+    ...(options.existingMedia && !options.disabled
+      ? [
+          {
+            name: 'existingMediaOptimizer',
+            type: 'ui' as const,
+            admin: {
+              components: {
+                Field: {
+                  clientProps: {
+                    collections: options.collections,
+                  },
+                  path: '@zubricks/payload-plugin-image-optimization/client#ExistingMediaOptimizer',
+                },
+              },
+            },
+          },
+        ]
+      : []),
   ],
   label: 'Image Optimization',
 })
