@@ -3,6 +3,7 @@ import type { GlobalConfig, PayloadRequest } from 'payload'
 import type {
   ImageCompressionAdminSettings,
   ImageCompressionPreset,
+  ImageCompressionProcessingOptions,
   ImageCompressionSettingsResolver,
   SanitizedImageCompressionOptions,
 } from './types.js'
@@ -183,7 +184,9 @@ export const createImageCompressionSettingsResolver = (
   }
 }
 
-export const getProcessingOptions = (options: SanitizedImageCompressionOptions) => ({
+export const getProcessingOptions = (
+  options: SanitizedImageCompressionOptions,
+): ImageCompressionProcessingOptions => ({
   format: options.format,
   formatOptions: options.formatOptions,
   maxFileSize: options.maxFileSize,

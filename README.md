@@ -12,8 +12,9 @@ file persistence to Payload and its storage adapters.
 pnpm add @zubricks/payload-plugin-image-optimization
 ```
 
-Payload, React, `@payloadcms/ui`, and Sharp are peer dependencies. This package targets Payload
-3.88 or newer and Node.js 20.9 or newer.
+Payload, React, `@payloadcms/ui`, and Sharp are peer dependencies. This package supports Payload
+3.88 and newer, including Payload 4. The plugin itself supports Node.js 20.9 and newer; your chosen
+Payload release may require a newer Node.js version (Payload 4 currently requires Node.js 24.15+).
 
 Import the plugin and add it to the `plugins` array in `payload.config.ts` (or in the module where
 your Payload plugins are assembled). Every collection listed in `collections` must be
@@ -257,9 +258,9 @@ plugin composition. Live provider credentials and network behavior still require
 tests before release.
 
 Vercel server uploads have a 4.5 MB request-body limit. Use an official storage adapter with client
-uploads for larger inputs. Payload 3.88 rehydrates supported client uploads into `req.file`, allowing
-inline processing to run, but the decoded image must still fit within the function's memory and
-duration limits. Background mode is recommended for large or CPU-expensive images.
+uploads for larger inputs. Supported client-upload adapters rehydrate uploads into `req.file`,
+allowing inline processing to run, but the decoded image must still fit within the function's memory
+and duration limits. Background mode is recommended for large or CPU-expensive images.
 
 Existing-media batches use short authenticated requests instead of a long-running in-process loop.
 The admin client sends the next batch only after the previous batch completes, making the workflow
@@ -267,11 +268,16 @@ compatible with serverless execution limits and resumable after a browser or fun
 
 ## Node-runtime compatibility matrix
 
+Payload 3.88 and Payload 4 use different Admin UI styling APIs. Version 1.1.1 and newer ships
+standalone CSS and does not depend on Payload's private Sass entrypoint. The release is built and
+tested against Payload 3.88, and type-checked against Payload 4.0.0-canary.28. Payload 4 is still a
+moving pre-release target, so newer canaries should be verified before production deployment.
+
 | Runtime                                 | Support            | Notes                                                             |
 | --------------------------------------- | ------------------ | ----------------------------------------------------------------- |
 | Node.js 20.9+                           | Supported          | Minimum runtime supported by Sharp 0.34                           |
 | Node.js 22                              | Tested             | Integration suite currently runs on Node 22                       |
-| Node.js 24                              | Expected           | Supported by Sharp; add CI before claiming tested support         |
+| Node.js 24.15+                          | Required by v4      | Payload 4 runtime minimum; add runtime CI before claiming tested   |
 | Node.js 18                              | Unsupported        | Below Sharp 0.34's Node-API runtime requirement                   |
 | Vercel Node.js Functions                | Supported          | Requires persistent storage; use client uploads above 4.5 MB      |
 | AWS Lambda Node.js                      | Supported          | Deployment must include the matching Linux Sharp binary           |

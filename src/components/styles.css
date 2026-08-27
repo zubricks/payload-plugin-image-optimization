@@ -1,0 +1,231 @@
+.compression-summary {
+  --compression-success: #0d99ff;
+  --compression-success-soft: #d1ebff;
+  --compression-error: #c62f2f;
+  --compression-error-soft: #fff0ef;
+  --compression-original: #e84747;
+  --compression-bg: var(--color-bg, var(--theme-elevation-0, #fff));
+  --compression-border: var(--color-border, var(--theme-elevation-150, #ddd));
+  --compression-muted: var(--color-text-secondary, var(--theme-elevation-500, #666));
+  --compression-text: var(--color-text, var(--theme-text, #222));
+  --compression-inverse: var(--color-bg-inverse, var(--theme-elevation-800, #333));
+  --compression-on-inverse: var(--color-text-oninverse, var(--theme-elevation-0, #fff));
+
+  overflow: hidden;
+  border: 1px solid var(--compression-border);
+  border-radius: var(--radius-medium, var(--style-radius-m, 4px));
+  background: var(--compression-bg);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--compression-text) 6%, transparent);
+}
+
+.compression-summary__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacer-3, 1rem);
+  padding: var(--spacer-3, 1rem) var(--spacer-4, 1.25rem);
+  border-bottom: 1px solid var(--compression-border);
+}
+
+.compression-summary__action-error {
+  margin: 0;
+  padding: 0.75rem var(--spacer-4, 1.25rem);
+  border-bottom: 1px solid var(--compression-border);
+  background: var(--compression-error-soft);
+  color: var(--compression-error);
+}
+
+.compression-summary__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.compression-summary__description {
+  margin: 0;
+  color: var(--compression-muted);
+  font-size: 0.875rem;
+}
+
+.compression-summary__metrics {
+  width: 100%;
+}
+
+.compression-summary__labels,
+.compression-summary__values {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7.5rem, auto) minmax(0, 1fr);
+  column-gap: var(--spacer-4, 1.25rem);
+  align-items: center;
+  padding-inline: var(--spacer-4, 1.25rem);
+}
+
+.compression-summary__labels > :nth-child(2),
+.compression-summary__values > :nth-child(2) {
+  text-align: center;
+}
+
+.compression-summary__labels > :last-child,
+.compression-summary__values > :last-child {
+  text-align: right;
+}
+
+.compression-summary__labels {
+  padding-block: 0.5rem;
+  background: var(--compression-inverse);
+  color: var(--compression-on-inverse);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.compression-summary__values {
+  padding-block: 0.75rem;
+  color: var(--compression-text);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.compression-summary__values > span {
+  white-space: nowrap;
+}
+
+.compression-summary__before {
+  color: var(--compression-original) !important;
+}
+
+.compression-summary__status {
+  display: inline-flex;
+  min-width: 7.5rem;
+  min-height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.compression-summary__status--success {
+  background: var(--compression-success-soft);
+  color: var(--compression-success);
+  font-weight: 700;
+}
+
+.compression-summary__status--error {
+  background: var(--compression-error-soft);
+  color: var(--compression-error);
+}
+
+.compression-summary__status--neutral {
+  background: var(--color-bg-subtle, var(--theme-elevation-100, #eee));
+  color: var(--color-text-secondary, var(--theme-elevation-600, #555));
+}
+
+.compression-summary__empty {
+  padding: var(--spacer-4, 1.25rem);
+  color: var(--compression-muted);
+}
+
+.existing-media-optimizer {
+  --compression-success: #0d99ff;
+  --compression-error: #c62f2f;
+  --compression-border: var(--color-border, var(--theme-elevation-150, #ddd));
+  --compression-muted: var(--color-text-secondary, var(--theme-elevation-600, #555));
+
+  margin-top: var(--spacer-3, 1rem);
+  padding: var(--spacer-4, 1.25rem);
+  border: 1px solid var(--compression-border);
+  border-radius: var(--radius-medium, var(--style-radius-m, 4px));
+  background: var(--color-bg, var(--theme-elevation-0, #fff));
+}
+
+.existing-media-optimizer h3,
+.existing-media-optimizer p {
+  margin: 0;
+}
+
+.existing-media-optimizer h3 {
+  margin-bottom: 0.25rem;
+  font-size: 1.05rem;
+}
+
+.existing-media-optimizer p {
+  max-width: 49rem;
+  color: var(--compression-muted);
+}
+
+.existing-media-optimizer__content,
+.existing-media-optimizer__actions {
+  display: flex;
+  align-items: center;
+}
+
+.existing-media-optimizer__content {
+  justify-content: space-between;
+  gap: var(--spacer-5, 1.5rem);
+}
+
+.existing-media-optimizer__actions {
+  flex-shrink: 0;
+  gap: var(--spacer-2, 0.5rem);
+}
+
+.existing-media-optimizer__notice {
+  margin-top: var(--spacer-3, 0.75rem) !important;
+  padding-top: var(--spacer-3, 0.75rem);
+  border-top: 1px solid var(--compression-border);
+}
+
+.existing-media-optimizer__notice--success {
+  color: var(--compression-success) !important;
+}
+
+.existing-media-optimizer__notice--error {
+  color: var(--compression-error) !important;
+}
+
+html[data-theme='dark'] .compression-summary {
+  --compression-success: #4ade80;
+  --compression-success-soft: color-mix(
+    in srgb,
+    #4ade80 14%,
+    var(--color-bg-subtle, var(--theme-elevation-50, #222))
+  );
+  --compression-error: #fb7185;
+  --compression-error-soft: color-mix(
+    in srgb,
+    #fb7185 14%,
+    var(--color-bg-subtle, var(--theme-elevation-50, #222))
+  );
+  --compression-original: #fb7185;
+}
+
+html[data-theme='dark'] .existing-media-optimizer {
+  --compression-success: #4ade80;
+  --compression-error: #fb7185;
+}
+
+@media (max-width: 768px) {
+  .compression-summary__labels,
+  .compression-summary__values {
+    column-gap: 0.75rem;
+    padding-inline: 0.75rem;
+  }
+
+  .compression-summary__values {
+    font-size: 0.875rem;
+  }
+
+  .compression-summary__status {
+    min-width: 0;
+    font-size: 0.75rem;
+  }
+
+  .existing-media-optimizer__content,
+  .existing-media-optimizer__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

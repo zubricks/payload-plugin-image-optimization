@@ -5,7 +5,7 @@ import { formatAdminURL } from 'payload/shared'
 import { useMemo, useState } from 'react'
 
 import { formatBytes } from './formatBytes.js'
-import './styles.scss'
+import './styles.css'
 
 type ExistingMediaOptimizerProps = {
   collections: string[]
@@ -143,12 +143,11 @@ export const ExistingMediaOptimizer = ({ collections }: ExistingMediaOptimizerPr
             disabled={busy}
             margin={false}
             onClick={scan}
-            size="small"
           >
             {phase === 'scanning' ? 'Scanning…' : 'Scan existing media'}
           </Button>
           {eligibleTotal > 0 ? (
-            <Button disabled={busy} margin={false} onClick={optimize} size="small">
+            <Button disabled={busy} margin={false} onClick={optimize}>
               {phase === 'running'
                 ? `Optimizing ${processed + failed} of ${eligibleTotal}…`
                 : `Optimize ${eligibleTotal} ${eligibleTotal === 1 ? 'image' : 'images'}`}

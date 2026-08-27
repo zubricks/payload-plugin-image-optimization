@@ -5,7 +5,7 @@ import { formatAdminURL } from 'payload/shared'
 import { useState } from 'react'
 
 import { formatBytes } from './formatBytes.js'
-import './styles.scss'
+import './styles.css'
 
 type CompressionStatus =
   'complete' | 'failed' | 'kept-original' | 'larger-than-source' | 'pending' | 'skipped'
@@ -125,7 +125,7 @@ export const CompressionSummary = ({
           </p>
         </div>
         {canOptimizeExisting ? (
-          <Button disabled={optimizing} margin={false} onClick={optimizeExisting} size="small">
+          <Button disabled={optimizing} margin={false} onClick={optimizeExisting}>
             {optimizing ? 'Optimizing…' : 'Optimize existing image'}
           </Button>
         ) : null}
