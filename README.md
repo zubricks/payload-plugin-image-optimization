@@ -1,6 +1,8 @@
+<img width="1200" height="375" alt="github-header" src="https://github.com/user-attachments/assets/291ef5cd-e462-48d1-8145-a19222e037f6" />
+
 # Image Optimization for Payload
 
-Dependency-light image optimization for Payload. The plugin uses the project's existing `sharp`
+Dependency-light image optimization for Payload. The plugin uses the Payload's existing `sharp`
 dependency, owns the stored-original encode so it can make reliable fallback decisions, and leaves
 file persistence to Payload and its storage adapters.
 
