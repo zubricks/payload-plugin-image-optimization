@@ -1,6 +1,6 @@
 {
   "name": "@zubricks/payload-plugin-image-optimization",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Dependency-light image compression and optimization for Payload CMS",
   "keywords": [
     "payload",
