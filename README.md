@@ -9,7 +9,7 @@ file persistence to Payload and its storage adapters.
 ## Installation
 
 ```sh
-pnpm add @zubricks/payload-plugin-image-optimization
+pnpm add @zubricks/payload-plugin-image-optimization sharp
 ```
 
 Payload, React, `@payloadcms/ui`, and Sharp are peer dependencies. This package supports Payload
@@ -265,6 +265,68 @@ and duration limits. Background mode is recommended for large or CPU-expensive i
 Existing-media batches use short authenticated requests instead of a long-running in-process loop.
 The admin client sends the next batch only after the previous batch completes, making the workflow
 compatible with serverless execution limits and resumable after a browser or function interruption.
+
+## Production deployment guidance
+
+Sharp is a native peer dependency. The Payload application—not this plugin—must install Sharp
+directly and package binaries that match its production operating system, CPU architecture, and C
+standard library. A build created on macOS contains macOS binaries by default and cannot run on an
+AWS Lambda Linux runtime unless the corresponding Linux binaries are also installed and copied into
+the deployment artifact.
+
+For a project built on macOS and deployed to an AWS Lambda ARM64 runtime, add this project-level
+`pnpm-workspace.yaml`:
+
+```yaml
+supportedArchitectures:
+  os:
+    - darwin
+    - linux
+  cpu:
+    - arm64
+  libc:
+    - glibc
+```
+
+Then reinstall dependencies, delete any previous Next.js build output, and rebuild the deployment
+artifact:
+
+```sh
+pnpm install --force
+rm -rf .next
+pnpm build
+```
+
+Before deployment, confirm that a Next.js standalone build contains both of these directories:
+
+```text
+.next/standalone/node_modules/@img/sharp-linux-arm64/
+.next/standalone/node_modules/@img/sharp-libvips-linux-arm64/
+```
+
+This example supports an Apple Silicon macOS builder and an ARM64 AWS Lambda target. Adjust or add
+values to match both your build machine and deployment target: use `x64` for an Intel/x64 target.
+Standard AWS Lambda runtimes use `glibc`; Alpine container images use `musl`. Building the artifact
+in a Linux environment matching production is the most deterministic option.
+
+If the packages are installed but omitted from a Next.js standalone artifact, include the runtime
+files explicitly in `next.config`:
+
+```ts
+const nextConfig = {
+  output: 'standalone',
+  outputFileTracingIncludes: {
+    '/*': [
+      'node_modules/sharp/**/*',
+      'node_modules/@img/sharp-linux-arm64/**/*',
+      'node_modules/@img/sharp-libvips-linux-arm64/**/*',
+    ],
+  },
+}
+```
+
+Do not add these platform settings to the plugin package itself. A reusable plugin cannot know
+whether its host deploys to Lambda ARM64, Lambda x64, Alpine, Vercel, or a traditional Node server.
 
 ## Node-runtime compatibility matrix
 
