@@ -9,6 +9,7 @@
   --compression-muted: var(--color-text-secondary, var(--theme-elevation-500, #666));
   --compression-text: var(--color-text, var(--theme-text, #222));
   --compression-inverse: var(--color-bg-inverse, var(--theme-elevation-800, #333));
+  --compression-inline-padding: var(--spacer-4, 1.25rem);
   --compression-on-inverse: var(--color-text-oninverse, var(--theme-elevation-0, #fff));
 
   container: compression-summary / inline-size;
@@ -25,7 +26,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacer-3, 1rem);
-  padding: var(--spacer-3, 1rem) var(--spacer-4, 1.25rem);
+  padding: var(--spacer-3, 1rem) var(--compression-inline-padding);
   border-bottom: 1px solid var(--compression-border);
 }
 
@@ -35,7 +36,7 @@
 
 .compression-summary__action-error {
   margin: 0;
-  padding: 0.75rem var(--spacer-4, 1.25rem);
+  padding: 0.75rem var(--compression-inline-padding);
   border-bottom: 1px solid var(--compression-border);
   background: var(--compression-error-soft);
   color: var(--compression-error);
@@ -63,7 +64,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(7.5rem, auto) minmax(0, 1fr);
   column-gap: var(--spacer-4, 1.25rem);
   align-items: center;
-  padding-inline: var(--spacer-4, 1.25rem);
+  padding-inline: var(--compression-inline-padding);
 }
 
 .compression-summary__labels > :nth-child(2),
@@ -130,7 +131,7 @@
 }
 
 .compression-summary__empty {
-  padding: var(--spacer-4, 1.25rem);
+  padding: var(--compression-inline-padding);
   color: var(--compression-muted);
 }
 
@@ -227,7 +228,6 @@ html[data-theme='dark'] .existing-media-optimizer {
   .compression-summary__labels,
   .compression-summary__values {
     column-gap: 0.75rem;
-    padding-inline: 0.75rem;
   }
 
   .compression-summary__values {
