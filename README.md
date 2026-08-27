@@ -15,6 +15,35 @@ pnpm add @zubricks/payload-plugin-image-optimization
 Payload, React, `@payloadcms/ui`, and Sharp are peer dependencies. This package targets Payload
 3.88 or newer and Node.js 20.9 or newer.
 
+Import the plugin and add it to the `plugins` array in `payload.config.ts` (or in the module where
+your Payload plugins are assembled). Every collection listed in `collections` must be
+upload-enabled.
+
+```ts
+import { imageCompressionPlugin } from '@zubricks/payload-plugin-image-optimization'
+import { buildConfig } from 'payload'
+import sharp from 'sharp'
+
+export default buildConfig({
+  // ...your existing Payload config
+  plugins: [
+    imageCompressionPlugin({
+      collections: ['media'],
+    }),
+  ],
+  sharp,
+})
+```
+
+After changing the plugin configuration, regenerate Payload's import map and types, then restart
+the development server:
+
+```sh
+pnpm payload generate:importmap
+pnpm payload generate:types
+pnpm dev
+```
+
 ## Current behavior
 
 - Optimizes new and replaced raster-image originals
