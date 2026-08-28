@@ -9,12 +9,13 @@
   --compression-muted: var(--color-text-secondary, var(--theme-elevation-500, #666));
   --compression-text: var(--color-text, var(--theme-text, #222));
   --compression-inverse: var(--color-bg-inverse, var(--theme-elevation-800, #333));
-  --compression-inline-padding: var(--spacer-4, 1.25rem);
+  /* Payload 4 exposes spacer tokens; Payload 3 uses the existing 20px fallback. */
+  --compression-inline-padding: var(--spacer-3, 1.25rem);
   --compression-on-inverse: var(--color-text-oninverse, var(--theme-elevation-0, #fff));
 
   container: compression-summary / inline-size;
   overflow: hidden;
-  margin-top: var(--spacer-3, 1rem);
+  margin-top: 0;
   border: 1px solid var(--compression-border);
   border-radius: var(--radius-medium, var(--style-radius-m, 4px));
   background: var(--compression-bg);

@@ -98,6 +98,7 @@ describe('imageCompressionPlugin', () => {
     expect(upload?.withMetadata).toBe(false)
     expect(summaryField).toMatchObject({
       admin: {
+        position: 'sidebar',
         components: {
           Field: {
             clientProps: { existingMediaEnabled: true, metricsPath: 'imageCompression' },

@@ -68,6 +68,7 @@ export const compressionMetadataFields = (name: string, existingMediaEnabled = f
     name: `${name}Summary`,
     type: 'ui',
     admin: {
+      position: 'sidebar',
       components: {
         Field: {
           clientProps: {
