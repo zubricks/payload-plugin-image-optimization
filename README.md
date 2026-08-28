@@ -139,7 +139,7 @@ The **Existing media** panel in the Image Optimization Global provides a two-ste
 1. **Scan existing media** counts eligible images without changing them.
 2. **Optimize images** processes bounded batches until the scan is complete.
 
-An **Optimize existing image** action also appears on individual media documents that do not have
+An **Optimize Image** action also appears on individual media documents that do not have
 compression metrics yet. Both actions require an authenticated Payload user and execute collection
 read and update access control. Existing documents with compression metrics are excluded by default
 to prevent repeated lossy encoding. The per-document API supports an explicit `force` request for

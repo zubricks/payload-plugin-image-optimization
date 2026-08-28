@@ -9,13 +9,13 @@
   --compression-muted: var(--color-text-secondary, var(--theme-elevation-500, #666));
   --compression-text: var(--color-text, var(--theme-text, #222));
   --compression-inverse: var(--color-bg-inverse, var(--theme-elevation-800, #333));
-  /* Payload 4 exposes spacer tokens; Payload 3 uses the existing 20px fallback. */
-  --compression-inline-padding: var(--spacer-3, 1.25rem);
+  /* Match Payload 4 input text inset; Payload 3 keeps its existing 20px fallback. */
+  --compression-inline-padding: var(--spacer-2, 1.25rem);
   --compression-on-inverse: var(--color-text-oninverse, var(--theme-elevation-0, #fff));
 
   container: compression-summary / inline-size;
   overflow: hidden;
-  margin-top: 0;
+  margin-top: var(--spacer-3, 1rem);
   border: 1px solid var(--compression-border);
   border-radius: var(--radius-medium, var(--style-radius-m, 4px));
   background: var(--compression-bg);
@@ -216,7 +216,7 @@ html[data-theme='dark'] .existing-media-optimizer {
   --compression-error: #fb7185;
 }
 
-@container compression-summary (max-width: 36rem) {
+@container compression-summary (max-width: 576px) {
   .compression-summary__header {
     align-items: flex-start;
     flex-direction: column;

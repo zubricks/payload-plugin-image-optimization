@@ -121,12 +121,12 @@ export const CompressionSummary = ({
             Image Compression
           </h3>
           <p className="compression-summary__description">
-            Recorded automatically when an image is uploaded or replaced.
+            Optimization converts PNG and JPEG images to WebP.
           </p>
         </div>
         {canOptimizeExisting ? (
           <Button disabled={optimizing} margin={false} onClick={optimizeExisting}>
-            {optimizing ? 'Optimizing…' : 'Optimize existing image'}
+            {optimizing ? 'Optimizing…' : 'Optimize Image'}
           </Button>
         ) : null}
       </header>
